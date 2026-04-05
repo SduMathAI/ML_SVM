@@ -2,3 +2,8 @@
 	path = Lecture_Note
 	url = https://github.com/Tristan-sdu/ML_SVM_note.git
 	branch = main
+
+[submodule "Exercise_solution"]
+	path = Exercise_solution
+	url = https://github.com/EdisonLiu520/ML_Chap6_Exercises.git
+	branch = main
