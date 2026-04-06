@@ -19,6 +19,8 @@ from lecture_experiments.common import LectureConfig, ensure_dir, prepare_split_
 
 
 def parse_args() -> argparse.Namespace:
+    """解析“支持向量分析”脚本的命令行参数。"""
+
     parser = argparse.ArgumentParser(description="Topic 2: inspect support vectors in the AD vs NORMAL linear model.")
     parser.add_argument("--model-path", default="results/main_topic_ad_vs_normal_m00/best_model_linear.joblib")
     parser.add_argument("--output-dir", default="results/lecture_topic02_support_vectors")
@@ -26,14 +28,16 @@ def parse_args() -> argparse.Namespace:
 
 
 def main() -> None:
+    """把训练好的模型支持向量映射回具体训练样本。"""
+
     args = parse_args()
     output_dir = Path(args.output_dir)
     ensure_dir(output_dir)
 
     # 这里先重建与讲课脚本一致的数据划分，
     # 然后再读取已经训练好的线性模型。
-    config = LectureConfig()
-    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)
+    config = LectureConfig()  # 与主实验保持同一套默认设置
+    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)  # 重建同样的数据划分
     model = joblib.load(args.model_path)
     svm = model.named_steps["svm"]
 

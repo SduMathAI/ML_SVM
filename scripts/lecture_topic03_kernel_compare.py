@@ -28,16 +28,20 @@ from lecture_experiments.common import (
 
 
 def parse_args() -> argparse.Namespace:
+    """解析“核函数比较”脚本的命令行参数。"""
+
     parser = argparse.ArgumentParser(description="Topic 3: compare linear and RBF kernels on AD vs NORMAL @ m00.")
     parser.add_argument("--output-dir", default="results/lecture_topic03_kernel_compare")
     return parser.parse_args()
 
 
 def main() -> None:
+    """训练并比较线性核与 RBF 核 SVM 模型。"""
+
     args = parse_args()
     output_dir = Path(args.output_dir)
 
-    config = LectureConfig()
+    config = LectureConfig()  # 沿用主实验默认设置，便于结果对齐
     # 这里的随机种子写在配置里，所以这份结果是可复现的，
     # 也便于和讲稿中的数字保持一致。
     prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)
@@ -48,10 +52,10 @@ def main() -> None:
         groups_train=prepared["groups_train"],
         X_test=prepared["X_test"],
         y_test=prepared["y_test"],
-        labels=["AD", "NORMAL"],
-        config=config,
-        output_dir=output_dir,
-        kernels=["linear", "rbf"],
+        labels=["AD", "NORMAL"],  # 固定比较任务
+        config=config,  # 统一预处理与划分策略
+        output_dir=output_dir,  # 保存指标、图和模型
+        kernels=["linear", "rbf"],  # 只比较两种最核心的核函数
     )
     print(f"Saved kernel-comparison results to: {output_dir}")
 

@@ -378,12 +378,12 @@ def fit_grid_models(
             param_grid = [{"svm__C": [0.1, 1, 10], "svm__gamma": ["scale", 0.1, 0.01]}]
 
         search = GridSearchCV(
-            estimator=pipeline,
-            param_grid=param_grid,
-            scoring="balanced_accuracy",
-            cv=cv,
-            n_jobs=config.n_jobs,
-            refit=True,
+            estimator=pipeline,  # 标准化 + PCA + SVM 流水线
+            param_grid=param_grid,  # 当前 kernel 的超参数搜索空间
+            scoring="balanced_accuracy",  # 以 balanced accuracy 作为选模标准
+            cv=cv,  # 受试者分组交叉验证
+            n_jobs=config.n_jobs,  # 并行 worker 数
+            refit=True,  # 用最佳参数在整个训练集上重训
         )
         # 课堂上要重点强调：
         # 参数选择必须发生在训练集内部，不能拿测试集调参。

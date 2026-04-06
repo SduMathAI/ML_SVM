@@ -17,6 +17,8 @@ from run_mri_svm_experiment import ExperimentConfig, run_experiment
 
 
 def main() -> None:
+    """运行当前唯一推荐的主课题实验入口。"""
+
     # 这是当前唯一推荐的主课题入口：
     # 只做 AD vs NORMAL，并且只使用 m00 基线数据。
     #
@@ -25,18 +27,18 @@ def main() -> None:
     # 2. 按受试者做 80% 训练集、20% 测试集划分；
     # 3. 在训练集内部做 5 折分组交叉验证来选参数。
     config = ExperimentConfig(
-        data_dir=Path("processed"),
-        output_dir=Path("results/main_topic_ad_vs_normal_m00"),
-        cache_dir=Path("artifacts/feature_cache"),
-        labels=["AD", "NORMAL"],
-        month="00",
-        target_shape=(32, 32, 32),
-        pca_components=100,
-        test_size=0.2,
-        random_state=42,
-        cv_folds=5,
-        clip_percentile=99.5,
-        n_jobs=-1,
+        data_dir=Path("processed"),  # MRI 数据目录
+        output_dir=Path("results/main_topic_ad_vs_normal_m00"),  # 主课题结果输出目录
+        cache_dir=Path("artifacts/feature_cache"),  # 预处理特征缓存目录
+        labels=["AD", "NORMAL"],  # 当前二分类标签
+        month="00",  # 只使用基线时间点 m00
+        target_shape=(32, 32, 32),  # MRI 下采样后的统一尺寸
+        pca_components=100,  # PCA 主成分上限
+        test_size=0.2,  # 受试者级别测试集比例
+        random_state=42,  # 固定随机种子，保证可复现
+        cv_folds=5,  # 训练集内部 5 折交叉验证
+        clip_percentile=99.5,  # 强度裁剪上界分位数
+        n_jobs=-1,  # 并行使用全部 CPU 核心
     )
 
     summary = run_experiment(config)

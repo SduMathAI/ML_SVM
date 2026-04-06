@@ -30,25 +30,34 @@ from lecture_experiments.common import (
 
 
 def parse_args() -> argparse.Namespace:
+    """解析“参数 C 扫描”脚本的命令行参数。"""
+
     parser = argparse.ArgumentParser(description="Topic 4: show how C changes the linear SVM.")
     parser.add_argument("--output-dir", default="results/lecture_topic04_c_sweep")
     return parser.parse_args()
 
 
 def main() -> None:
+    """扫描不同的 C 值，展示软间隔中的权衡关系。"""
+
     args = parse_args()
     output_dir = Path(args.output_dir)
     ensure_dir(output_dir)
 
-    config = LectureConfig()
-    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)
-    pca_components = safe_pca_components(config.pca_components, prepared["X_train"])
+    config = LectureConfig()  # 其他实验条件全部保持默认
+    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)  # 固定主线二分类任务
+    pca_components = safe_pca_components(config.pca_components, prepared["X_train"])  # 防止 PCA 维数超过训练集允许范围
 
     rows = []
     for c_value in [0.01, 0.1, 1.0, 10.0, 100.0]:
         # 这里只改 C，其他所有条件都保持不变。
         # 这样实验现象才容易解释，不会把多个因素混在一起。
-        model = build_pipeline(kernel="linear", pca_components=pca_components, random_state=config.random_state, c_value=c_value)
+        model = build_pipeline(
+            kernel="linear",  # 固定线性核，只观察 C 的影响
+            pca_components=pca_components,  # 维持统一降维维数
+            random_state=config.random_state,  # 固定随机性，保证可复现
+            c_value=c_value,  # 当前软间隔惩罚系数
+        )
         model.fit(prepared["X_train"], prepared["y_train"])
         y_pred = model.predict(prepared["X_test"])
         scores = model.decision_function(prepared["X_test"])

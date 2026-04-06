@@ -43,6 +43,8 @@ FILENAME_PATTERN = (
 
 @dataclass
 class ExperimentConfig:
+    """描述一次 MRI PCA+SVM 实验所需配置的对象。"""
+
     data_dir: Path
     output_dir: Path
     cache_dir: Path
@@ -58,6 +60,8 @@ class ExperimentConfig:
 
 
 def parse_args() -> ExperimentConfig:
+    """解析命令行参数，并整理成实验配置对象。"""
+
     parser = argparse.ArgumentParser(description="Run MRI PCA+SVM experiments.")
     parser.add_argument("--data-dir", default="processed", help="Directory containing .nii.gz MRI files.")
     parser.add_argument("--output-dir", required=True, help="Directory used to save results.")
@@ -95,10 +99,14 @@ def parse_args() -> ExperimentConfig:
 
 
 def ensure_dir(path: Path) -> None:
+    """如果目录不存在，就先创建出来。"""
+
     path.mkdir(parents=True, exist_ok=True)
 
 
 def index_dataset(data_dir: Path) -> pd.DataFrame:
+    """把 MRI 文件名解析成结构化的数据索引表。"""
+
     records: list[dict[str, str]] = []
     for path in sorted(data_dir.glob("*.nii.gz")):
         match = re.match(FILENAME_PATTERN, path.name)
@@ -115,6 +123,8 @@ def index_dataset(data_dir: Path) -> pd.DataFrame:
 
 
 def select_subset(df: pd.DataFrame, labels: Iterable[str], month: str) -> pd.DataFrame:
+    """筛选出满足标签组合和时间点要求的样本子集。"""
+
     labels = list(labels)
     subset = df[df["label"].isin(labels) & (df["month"] == month)].copy()
     if subset.empty:
@@ -124,6 +134,8 @@ def select_subset(df: pd.DataFrame, labels: Iterable[str], month: str) -> pd.Dat
 
 
 def preprocess_volume(path: Path, target_shape: tuple[int, int, int], clip_percentile: float) -> np.ndarray:
+    """读取单个 MRI，并完成标准化、缩放和展平。"""
+
     data = nib.load(str(path)).get_fdata(dtype=np.float32)
     mask = data != 0
 
@@ -147,6 +159,8 @@ def preprocess_volume(path: Path, target_shape: tuple[int, int, int], clip_perce
 
 
 def feature_cache_path(cache_dir: Path, subset: pd.DataFrame, config: ExperimentConfig) -> Path:
+    """根据样本列表和预处理设置生成特征缓存文件路径。"""
+
     ensure_dir(cache_dir)
     digest_source = "|".join(subset["path"].tolist())
     digest_source += f"|shape={config.target_shape}|clip={config.clip_percentile}"
@@ -156,6 +170,8 @@ def feature_cache_path(cache_dir: Path, subset: pd.DataFrame, config: Experiment
 
 
 def build_feature_matrix(subset: pd.DataFrame, config: ExperimentConfig) -> np.ndarray:
+    """把当前样本子集中的 MRI 全部转换成特征矩阵 X。"""
+
     cache_path = feature_cache_path(config.cache_dir, subset, config)
     if cache_path.exists():
         cached = np.load(cache_path)
@@ -175,6 +191,8 @@ def build_feature_matrix(subset: pd.DataFrame, config: ExperimentConfig) -> np.n
 
 
 def split_subjects(subset: pd.DataFrame, test_size: float, random_state: int) -> tuple[pd.Series, pd.Series]:
+    """按受试者而不是按图像划分训练集和测试集，避免数据泄漏。"""
+
     subject_table = subset[["subject", "label"]].drop_duplicates().reset_index(drop=True)
     train_subjects, test_subjects = train_test_split(
         subject_table["subject"],
@@ -186,6 +204,8 @@ def split_subjects(subset: pd.DataFrame, test_size: float, random_state: int) ->
 
 
 def safe_pca_components(requested: int, X_train: np.ndarray) -> int:
+    """把 PCA 维度限制在当前训练矩阵允许的合法范围内。"""
+
     max_components = min(X_train.shape[0] - 1, X_train.shape[1])
     if max_components < 1:
         raise ValueError("Training set is too small for PCA.")
@@ -193,6 +213,8 @@ def safe_pca_components(requested: int, X_train: np.ndarray) -> int:
 
 
 def pipeline_for(kernel: str, pca_components: int, random_state: int) -> Pipeline:
+    """构建统一使用的 StandardScaler -> PCA -> SVM 流水线。"""
+
     return Pipeline(
         steps=[
             ("scaler", StandardScaler()),
@@ -203,6 +225,8 @@ def pipeline_for(kernel: str, pca_components: int, random_state: int) -> Pipelin
 
 
 def param_grid_for(kernel: str) -> list[dict[str, list[object]]]:
+    """返回指定 SVM 核函数对应的超参数搜索空间。"""
+
     if kernel == "linear":
         return [{"svm__C": [0.1, 1, 10]}]
     return [{"svm__C": [0.1, 1, 10], "svm__gamma": ["scale", 0.1, 0.01]}]
@@ -214,6 +238,8 @@ def decision_auc(
     class_names: list[str],
     positive_label: int | None = None,
 ) -> float | None:
+    """根据二分类或多分类场景计算 ROC-AUC。"""
+
     if len(class_names) == 2:
         if positive_label is None:
             raise ValueError("positive_label must be provided for binary AUC.")
@@ -232,6 +258,8 @@ def decision_auc(
 
 
 def save_confusion_matrix(cm: np.ndarray, labels: list[str], output_path: Path, title: str) -> None:
+    """把混淆矩阵保存成热力图图片。"""
+
     plt.figure(figsize=(6, 5))
     sns.heatmap(cm, annot=True, fmt="d", cmap="Blues", xticklabels=labels, yticklabels=labels)
     plt.xlabel("Predicted")
@@ -243,6 +271,8 @@ def save_confusion_matrix(cm: np.ndarray, labels: list[str], output_path: Path, 
 
 
 def save_roc_curve(y_true: np.ndarray, scores: np.ndarray, output_path: Path, positive_label: int, label_name: str) -> None:
+    """为指定正类保存二分类 ROC 曲线图。"""
+
     binary_scores = scores if positive_label == 1 else -scores
     fpr, tpr, _ = roc_curve(y_true == positive_label, binary_scores)
     auc_value = roc_auc_score(y_true == positive_label, binary_scores)
@@ -268,6 +298,8 @@ def fit_and_evaluate(
     config: ExperimentConfig,
     output_dir: Path,
 ) -> pd.DataFrame:
+    """训练线性核和 RBF 核 SVM，评估并保存全部结果。"""
+
     results = []
     pca_components = safe_pca_components(config.pca_components, X_train)
     cv = StratifiedGroupKFold(n_splits=config.cv_folds, shuffle=True, random_state=config.random_state)
@@ -276,13 +308,13 @@ def fit_and_evaluate(
         print(f"[train] kernel={kernel}")
         pipeline = pipeline_for(kernel, pca_components, config.random_state)
         grid = GridSearchCV(
-            estimator=pipeline,
-            param_grid=param_grid_for(kernel),
-            scoring="balanced_accuracy",
-            cv=cv,
-            n_jobs=config.n_jobs,
-            refit=True,
-            verbose=1,
+            estimator=pipeline,  # 标准化 + PCA + SVM 的完整流水线
+            param_grid=param_grid_for(kernel),  # 当前核函数对应的搜索空间
+            scoring="balanced_accuracy",  # 用类不平衡更稳健的指标选参
+            cv=cv,  # 训练集内部的分组交叉验证器
+            n_jobs=config.n_jobs,  # 并行搜索时的 worker 数
+            refit=True,  # 用最佳参数在全部训练集上重训
+            verbose=1,  # 输出搜索进度，便于观察运行过程
         )
         grid.fit(X_train, y_train, groups=groups_train)
         best_model: Pipeline = grid.best_estimator_
@@ -347,6 +379,8 @@ def fit_and_evaluate(
 
 
 def run_experiment(config: ExperimentConfig) -> pd.DataFrame:
+    """执行完整实验流程：从数据索引到最终指标保存。"""
+
     ensure_dir(config.output_dir)
     ensure_dir(config.cache_dir)
 
@@ -414,6 +448,8 @@ def run_experiment(config: ExperimentConfig) -> pd.DataFrame:
 
 
 def main() -> None:
+    """通用 MRI PCA+SVM 实验脚本的命令行入口。"""
+
     config = parse_args()
     run_experiment(config)
 

@@ -31,26 +31,30 @@ from lecture_experiments.common import LectureConfig, ensure_dir, prepare_split_
 
 
 def parse_args() -> argparse.Namespace:
+    """解析“最大间隔”教学脚本的命令行参数。"""
+
     parser = argparse.ArgumentParser(description="Topic 1: maximum margin demo on AD vs NORMAL @ m00.")
     parser.add_argument("--output-dir", default="results/lecture_topic01_max_margin")
     return parser.parse_args()
 
 
 def main() -> None:
+    """生成线性 SVM 间隔与支持向量的二维可视化图。"""
+
     args = parse_args()
     output_dir = Path(args.output_dir)
     ensure_dir(output_dir)
 
     # 这里故意把 PCA 降到二维，只是为了把图画出来给课堂展示。
-    config = LectureConfig(pca_components=2)
-    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)
+    config = LectureConfig(pca_components=2)  # 强制降到 2 维，只为可视化边界
+    prepared = prepare_split_data(labels=["AD", "NORMAL"], config=config)  # 固定主线任务：AD vs NORMAL @ m00
 
     # 这里的目标不是追求最优性能，而是让分类边界能够被看见。
     model = Pipeline(
         [
-            ("scaler", StandardScaler()),
-            ("pca", PCA(n_components=2, random_state=config.random_state)),
-            ("svm", SVC(kernel="linear", C=1.0, class_weight="balanced")),
+            ("scaler", StandardScaler()),  # 先统一特征尺度
+            ("pca", PCA(n_components=2, random_state=config.random_state)),  # 压到二维平面便于画图
+            ("svm", SVC(kernel="linear", C=1.0, class_weight="balanced")),  # 固定线性核，突出几何意义
         ]
     )
     model.fit(prepared["X_train"], prepared["y_train"])
