@@ -75,11 +75,3 @@ python scripts\run_main_topic_experiment.py
 2. 看 `results/main_topic_ad_vs_normal_m00/metrics_summary.csv`
 3. 再看 `Lecture_Note/chapter6_project_driven_script.md`
 4. 如果要上课展示，再按顺序跑 `lecture_topic01-06`
-
-## 6. 一句话总结
-
-当前目录里：
-
-- 真正必须会用的：`run_main_topic_experiment.py`
-- 真正必须会讲的：`lecture_topic01-06.py`
-- 不必展开源码细节的：`lecture_experiments/common.py`
